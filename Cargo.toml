@@ -1,0 +1,10 @@
+[package]
+name = "allocative"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["Meta"]
+description = "Inspect rust object tree and output it as flamegraph"
+repository = "https://github.com/facebookexperimental/allocative"
+documentation = "https://docs.rs/allocative"
+keywords = ["TUI"]
