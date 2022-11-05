@@ -10,6 +10,8 @@
 #![cfg(test)]
 #![allow(dead_code)]
 
+mod skip;
+
 use crate as allocative;
 use crate::Allocative;
 
@@ -38,36 +40,5 @@ enum GenericEnum<T> {
     Tuple(T, String),
 }
 
-struct Unsupported;
-
-#[derive(Allocative)]
-struct TestIgnoreField {
-    #[allocative(skip)]
-    _unsupported: Unsupported,
-}
-
-#[derive(Allocative)]
-struct TestIgnoreInTupleStruct(#[allocative(skip)] Unsupported);
-
 #[derive(Allocative)]
 struct StructWithDefaultParam<T = String>(T);
-
-#[derive(Allocative)]
-enum TestMeasureIgnoreEnumVariant {
-    String(String),
-    #[allocative(skip)]
-    Unsupported(Unsupported),
-    UnsupportedInside(#[allocative(skip)] Unsupported),
-}
-
-#[derive(Allocative)]
-#[allocative(bound = "")]
-struct IgnoreBound<T> {
-    #[allocative(skip)]
-    t: T,
-}
-
-#[derive(Allocative)]
-struct TestBoundIgnored {
-    ignore_bound: IgnoreBound<Unsupported>,
-}
