@@ -90,11 +90,17 @@ fn derive_allocative_impl(
 ) -> syn::Result<proc_macro2::TokenStream> {
     let input: DeriveInput = syn::parse2(input)?;
     let name = &input.ident;
-    let body = gen_visit_body(&input)?;
     let (_impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
 
     let attrs = extract_attrs(&input.attrs)?;
     let impl_generics = impl_generics(&input.generics, &attrs)?;
+
+    let body = if attrs.skip {
+        quote_spanned! { input.span() =>
+        }
+    } else {
+        gen_visit_body(&input)?
+    };
 
     Ok(quote_spanned! {input.span()=>
         impl #impl_generics allocative::Allocative for #name #type_generics #where_clause {

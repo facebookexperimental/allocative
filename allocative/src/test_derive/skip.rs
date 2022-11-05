@@ -19,6 +19,18 @@ struct TestIgnoreField {
 }
 
 #[derive(Allocative)]
+#[allocative(skip)]
+struct TestSkipOnStruct {
+    _unsupported: Unsupported,
+}
+
+#[derive(Allocative)]
+#[allocative(skip)]
+enum TestSkipOnEnum {
+    Unsupported(Unsupported),
+}
+
+#[derive(Allocative)]
 struct TestIgnoreInTupleStruct(#[allocative(skip)] Unsupported);
 
 #[derive(Allocative)]
