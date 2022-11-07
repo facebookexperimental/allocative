@@ -129,6 +129,7 @@ impl Allocative for Infallible {
     }
 }
 
+#[cfg(rust_nightly)]
 impl Allocative for ! {
     fn visit<'a, 'b: 'a>(&self, _visitor: &'a mut Visitor<'b>) {
         match *self {}
