@@ -11,7 +11,6 @@ use std::any;
 use std::cmp::Ordering;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::marker::PhantomData;
 use std::ops::Deref;
 
 /// Hashed string, which is a key while descending into a tree (e.g. type name or field name).
@@ -72,16 +71,23 @@ impl Key {
         Key { hash, s }
     }
 
-    pub const fn for_type_name<T>() -> Key {
-        Key {
+    pub fn for_type_name<T>() -> Key {
+        // Compute hash at compile time.
+        #[cfg(rust_nightly)]
+        return Key {
             hash: MeasureKeyForType::<T>::KEY.hash,
             s: MeasureKeyForType::<T>::KEY.s,
-        }
+        };
+        // Hope optimizer folds this to constant (it doesn't for long type names).
+        #[cfg(not(rust_nightly))]
+        return Key::new(any::type_name::<T>());
     }
 }
 
-struct MeasureKeyForType<T>(PhantomData<T>);
+#[cfg(rust_nightly)]
+struct MeasureKeyForType<T>(std::marker::PhantomData<T>);
 
+#[cfg(rust_nightly)]
 impl<T> MeasureKeyForType<T> {
     /// Force compute it at compile time. Const fn does not guarantee that.
     pub const KEY: Key = Key::new(any::type_name::<T>());

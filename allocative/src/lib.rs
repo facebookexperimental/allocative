@@ -7,8 +7,7 @@
  * of this source tree.
  */
 
-// TODO(nga): features only on nightly.
-#![feature(const_type_name)]
+#![cfg_attr(rust_nightly, feature(const_type_name))]
 #![cfg_attr(rust_nightly, feature(never_type))]
 
 mod flamegraph;
