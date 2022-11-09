@@ -11,7 +11,16 @@ use std::convert::Infallible;
 use std::ffi::OsStr;
 use std::marker::PhantomData;
 use std::mem;
+use std::num::NonZeroI16;
+use std::num::NonZeroI32;
+use std::num::NonZeroI64;
+use std::num::NonZeroI8;
+use std::num::NonZeroIsize;
+use std::num::NonZeroU16;
+use std::num::NonZeroU32;
 use std::num::NonZeroU64;
+use std::num::NonZeroU8;
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use crate::impls::common::DATA_NAME;
@@ -112,6 +121,60 @@ impl Allocative for PathBuf {
 }
 
 impl Allocative for NonZeroU64 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroU32 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroU16 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroU8 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroI64 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroI32 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroI16 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroI8 {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroUsize {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        visitor.visit_simple_sized::<Self>();
+    }
+}
+
+impl Allocative for NonZeroIsize {
     fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
         visitor.visit_simple_sized::<Self>();
     }

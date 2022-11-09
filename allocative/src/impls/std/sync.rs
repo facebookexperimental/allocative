@@ -8,6 +8,8 @@
  */
 
 use std::mem;
+use std::rc;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicI32;
 use std::sync::atomic::AtomicI64;
@@ -69,6 +71,46 @@ impl<T: Allocative + ?Sized> Allocative for Weak<T> {
         {
             if let Some(arc) = self.upgrade() {
                 arc.visit(&mut visitor);
+            }
+        }
+        visitor.exit();
+    }
+}
+
+impl<T: Allocative> Allocative for Rc<T> {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        let mut visitor = visitor.enter_self_sized::<Self>();
+        {
+            let visitor = visitor.enter_shared(
+                PTR_NAME,
+                // TODO(nga): 8 or 16 depending on sized or unsized.
+                mem::size_of::<*const ()>(),
+                Rc::as_ptr(self) as *const (),
+            );
+            if let Some(mut visitor) = visitor {
+                struct RcInner(AtomicUsize, AtomicUsize, ());
+                {
+                    let val: &T = self;
+                    let mut visitor = visitor.enter(
+                        Key::new("RcInner"),
+                        mem::size_of::<RcInner>() + mem::size_of_val(val),
+                    );
+                    val.visit(&mut visitor);
+                    visitor.exit();
+                }
+                visitor.exit();
+            }
+        }
+        visitor.exit();
+    }
+}
+
+impl<T: Allocative> Allocative for rc::Weak<T> {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+        let mut visitor = visitor.enter_self_sized::<Self>();
+        {
+            if let Some(rc) = self.upgrade() {
+                rc.visit(&mut visitor);
             }
         }
         visitor.exit();
