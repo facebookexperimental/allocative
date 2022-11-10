@@ -23,12 +23,18 @@ use crate::measure::Visitor;
 #[derive(Debug)]
 pub struct FlameGraphOutput {
     flamegraph: String,
+    warnings: String,
 }
 
 impl FlameGraphOutput {
     /// Flamegraph source, can be fed to `flamegraph.pl` or `inferno`.
     pub fn flamegraph(&self) -> String {
         self.flamegraph.clone()
+    }
+
+    /// Warnings. Text file in unspecified format.
+    pub fn warnings(&self) -> String {
+        self.warnings.clone()
     }
 }
 
@@ -38,11 +44,18 @@ struct TreeData {
     /// For example for `String` this would be `size_of::<String>()`.
     size: usize,
     /// Size excluding children. This value is output to flamegraph for given stack.
-    rem_size: usize,
+    /// Can be negative if nodes provides sizes incorrectly.
+    rem_size: isize,
     /// Whether this node is `Box` something.
     unique: bool,
     /// Child nodes.
     children: HashMap<Key, Tree>,
+}
+
+impl TreeData {
+    fn inline_children_size(&self) -> isize {
+        self.size as isize - self.rem_size
+    }
 }
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
@@ -70,7 +83,7 @@ impl Tree {
         self.0.borrow().children.values().cloned().collect()
     }
 
-    fn write_flame_graph(&self, stack: &[&str], w: &mut String) {
+    fn write_flame_graph(&self, stack: &[&str], w: &mut String, warnings: &mut String) {
         let borrow = self.borrow();
         if borrow.rem_size > 0 {
             if stack.is_empty() {
@@ -78,21 +91,31 @@ impl Tree {
             } else {
                 writeln!(w, "{} {}", stack.join(";"), borrow.rem_size).unwrap();
             }
+        } else if borrow.rem_size < 0 && !stack.is_empty() {
+            writeln!(
+                warnings,
+                "Incorrect size declaration for node `{}`, size of self: {}, size of inline children: {}",
+                stack.join(";"),
+                borrow.size,
+                borrow.inline_children_size()
+            )
+            .unwrap();
         }
         let mut children: Vec<(&Key, &Tree)> = Vec::from_iter(&borrow.children);
         let mut stack = stack.to_vec();
         children.sort_by_key(|(k, _)| *k);
         for (key, child) in children {
             stack.push(key);
-            child.write_flame_graph(&stack, w);
+            child.write_flame_graph(&stack, w, warnings);
             stack.pop().unwrap();
         }
     }
 
-    fn to_flame_graph(&self) -> String {
+    fn to_flame_graph(&self) -> (String, String) {
         let mut s = String::new();
-        self.write_flame_graph(&[], &mut s);
-        s
+        let mut warnings = String::new();
+        self.write_flame_graph(&[], &mut s, &mut warnings);
+        (s, warnings)
     }
 }
 
@@ -167,14 +190,16 @@ impl FlameGraphBuilder {
 
     /// Finish building the flamegraph.
     pub fn finish(self) -> FlameGraphOutput {
+        let (flamegraph, warnings) = self.finish_impl().to_flame_graph();
         FlameGraphOutput {
-            flamegraph: self.finish_impl().to_flame_graph(),
+            flamegraph,
+            warnings,
         }
     }
 
     /// Finish building the flamegraph and return the flamegraph output.
     pub fn finish_and_write_flame_graph(self) -> String {
-        self.finish_impl().to_flame_graph()
+        self.finish().flamegraph
     }
 
     fn update_sizes(tree: Tree) {
@@ -189,13 +214,8 @@ impl FlameGraphBuilder {
                 .map(|child| child.borrow().size)
                 .sum::<usize>()
         };
-        let mut size = tree.borrow().size;
-        // This happens on root node, but should not happen elsewhere.
-        if size < children_size {
-            size = children_size;
-            tree.borrow_mut().size = size;
-        }
-        tree.borrow_mut().rem_size = size.saturating_sub(children_size);
+        let size = tree.borrow().size;
+        tree.borrow_mut().rem_size = (size as isize).saturating_sub(children_size as isize);
     }
 }
 
@@ -261,7 +281,7 @@ mod tests {
 
         let expected = Tree::default();
         assert_eq!(expected, tree);
-        assert_eq!("", tree.to_flame_graph());
+        assert_eq!("", tree.to_flame_graph().0);
     }
 
     #[test]
@@ -271,11 +291,12 @@ mod tests {
         let tree = fg.finish_impl();
 
         let expected = Tree::default();
-        expected.borrow_mut().size = 10;
+        expected.borrow_mut().size = 0;
+        expected.borrow_mut().rem_size = -10;
         expected.child(Key::new("a")).borrow_mut().size = 10;
         expected.child(Key::new("a")).borrow_mut().rem_size = 10;
         assert_eq!(expected, tree);
-        assert_eq!("a 10\n", tree.to_flame_graph());
+        assert_eq!("a 10\n", tree.to_flame_graph().0);
     }
 
     #[test]
@@ -299,7 +320,7 @@ mod tests {
                 Struct;p 6\n\
                 Struct;p;x 13\n\
             ",
-            tree.to_flame_graph(),
+            tree.to_flame_graph().0,
             "{:#?}",
             tree,
         );
@@ -336,9 +357,25 @@ mod tests {
             Struct;a 6\n\
             Struct;p 12\n\
         ",
-            tree.to_flame_graph(),
+            tree.to_flame_graph().0,
             "{:#?}",
             tree,
+        );
+    }
+
+    #[test]
+    fn test_inline_children_too_large() {
+        let mut fg = FlameGraphBuilder::default();
+        let mut visitor = fg.root_visitor();
+        let mut child_visitor = visitor.enter(Key::new("a"), 10);
+        child_visitor.visit_simple(Key::new("b"), 13);
+        child_visitor.exit();
+        visitor.exit();
+        let output = fg.finish();
+        assert_eq!("a;b 13\n", output.flamegraph());
+        assert_eq!(
+            "Incorrect size declaration for node `a`, size of self: 10, size of inline children: 13\n",
+            output.warnings()
         );
     }
 }
