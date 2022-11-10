@@ -22,10 +22,12 @@ use crate::measure::Visitor;
 
 #[derive(Default, Eq, PartialEq, Clone, Debug)]
 struct TreeData {
+    /// Size of this node including children but excluding unique/shared children.
+    /// For example for `String` this would be `size_of::<String>()`.
     size: usize,
-    /// Size excluding children.
+    /// Size excluding children. This value is output to flamegraph for given stack.
     rem_size: usize,
-    /// This field if `Box` something.
+    /// Whether this node is `Box` something.
     unique: bool,
     /// Child nodes.
     children: HashMap<Key, Tree>,
