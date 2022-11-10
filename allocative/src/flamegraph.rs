@@ -19,6 +19,7 @@ use std::rc::Rc;
 use crate::key::Key;
 use crate::measure::MeasureVisitorImpl;
 use crate::measure::Visitor;
+use crate::Allocative;
 
 #[derive(Debug)]
 pub struct FlameGraphOutput {
@@ -178,6 +179,13 @@ impl FlameGraphBuilder {
         assert!(!self.entered_root_visitor);
         self.entered_root_visitor = true;
         Visitor { visitor: self }
+    }
+
+    /// Collect tree sizes starting from given root.
+    pub fn visit_root(&mut self, root: &dyn Allocative) {
+        let mut visitor = self.root_visitor();
+        root.visit(&mut visitor);
+        visitor.exit();
     }
 
     fn finish_impl(self) -> Tree {

@@ -27,13 +27,10 @@ fn test_flamegraph() {
     }
 
     let mut fg = FlameGraphBuilder::default();
-    let mut visitor = fg.root_visitor();
-    TestData {
+    fg.visit_root(&TestData {
         data: vec![0; 100].into_boxed_slice(),
         b: 1,
-    }
-    .visit(&mut visitor);
-    visitor.exit();
+    });
     assert_eq!(
         "\
         allocative::test_derive::with_flamegraph::TestData 7\n\
