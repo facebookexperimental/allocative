@@ -20,6 +20,18 @@ use crate::key::Key;
 use crate::measure::MeasureVisitorImpl;
 use crate::measure::Visitor;
 
+#[derive(Debug)]
+pub struct FlameGraphOutput {
+    flamegraph: String,
+}
+
+impl FlameGraphOutput {
+    /// Flamegraph source, can be fed to `flamegraph.pl` or `inferno`.
+    pub fn flamegraph(&self) -> String {
+        self.flamegraph.clone()
+    }
+}
+
 #[derive(Default, Eq, PartialEq, Clone, Debug)]
 struct TreeData {
     /// Size of this node including children but excluding unique/shared children.
@@ -145,7 +157,7 @@ impl FlameGraphBuilder {
         Visitor { visitor: self }
     }
 
-    fn finish(self) -> Tree {
+    fn finish_impl(self) -> Tree {
         assert!(self.shared.is_empty());
         assert!(self.current.stack.is_empty());
         assert!(!self.entered_root_visitor);
@@ -153,8 +165,16 @@ impl FlameGraphBuilder {
         self.root
     }
 
+    /// Finish building the flamegraph.
+    pub fn finish(self) -> FlameGraphOutput {
+        FlameGraphOutput {
+            flamegraph: self.finish_impl().to_flame_graph(),
+        }
+    }
+
+    /// Finish building the flamegraph and return the flamegraph output.
     pub fn finish_and_write_flame_graph(self) -> String {
-        self.finish().to_flame_graph()
+        self.finish_impl().to_flame_graph()
     }
 
     fn update_sizes(tree: Tree) {
@@ -237,7 +257,7 @@ mod tests {
     fn test_empty() {
         let mut fg = FlameGraphBuilder::default();
         fg.root_visitor().exit();
-        let tree = fg.finish();
+        let tree = fg.finish_impl();
 
         let expected = Tree::default();
         assert_eq!(expected, tree);
@@ -248,7 +268,7 @@ mod tests {
     fn test_simple() {
         let mut fg = FlameGraphBuilder::default();
         fg.root_visitor().visit_simple(Key::new("a"), 10);
-        let tree = fg.finish();
+        let tree = fg.finish_impl();
 
         let expected = Tree::default();
         expected.borrow_mut().size = 10;
@@ -270,7 +290,7 @@ mod tests {
         s.exit();
         visitor.exit();
 
-        let tree = fg.finish();
+        let tree = fg.finish_impl();
 
         assert_eq!(
             "\
@@ -307,7 +327,7 @@ mod tests {
 
         visitor.exit();
 
-        let tree = fg.finish();
+        let tree = fg.finish_impl();
 
         assert_eq!(
             "\
