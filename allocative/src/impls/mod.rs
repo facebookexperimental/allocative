@@ -18,6 +18,7 @@ pub(crate) mod hashbrown;
 pub(crate) mod hashbrown_util;
 mod indexmap;
 mod lock_api;
+mod num_bigint;
 mod once_cell;
 mod owning_ref;
 mod parking_lot;
