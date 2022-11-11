@@ -27,19 +27,31 @@ pub(crate) trait MeasureVisitorImpl {
     #[must_use]
     fn enter_shared_impl(&mut self, name: Key, size: usize, ptr: *const ()) -> bool;
 
-    /// Exit the field. Each `enter_` must be matched by `exit_impl`.
+    /// Exit the field. Each `enter_` must be matched by `exit_`.
     /// `Visitor` wrapper guarantees that.
-    fn exit_impl(&mut self);
+    fn exit_inline_impl(&mut self);
+    fn exit_unique_impl(&mut self);
+    fn exit_shared_impl(&mut self);
+    // Exit "root" visitor.
+    fn exit_root_impl(&mut self);
+}
+
+pub(crate) enum NodeKind {
+    Inline,
+    Unique,
+    Shared,
+    Root,
 }
 
 #[must_use] // Must call `.exit()`.
 pub struct Visitor<'a> {
     pub(crate) visitor: &'a mut dyn MeasureVisitorImpl,
+    pub(crate) node_kind: NodeKind,
 }
 
 impl<'a> Drop for Visitor<'a> {
     fn drop(&mut self) {
-        self.visitor.exit_impl();
+        self.exit_impl();
     }
 }
 
@@ -51,6 +63,7 @@ impl<'a> Visitor<'a> {
         self.visitor.enter_inline_impl(name, size);
         Visitor {
             visitor: self.visitor,
+            node_kind: NodeKind::Inline,
         }
     }
 
@@ -61,6 +74,7 @@ impl<'a> Visitor<'a> {
         self.visitor.enter_unique_impl(name, size);
         Visitor {
             visitor: self.visitor,
+            node_kind: NodeKind::Unique,
         }
     }
 
@@ -76,6 +90,7 @@ impl<'a> Visitor<'a> {
         if self.visitor.enter_shared_impl(name, size, ptr) {
             Some(Visitor {
                 visitor: self.visitor,
+                node_kind: NodeKind::Shared,
             })
         } else {
             None
@@ -154,9 +169,18 @@ impl<'a> Visitor<'a> {
         );
     }
 
+    fn exit_impl(&mut self) {
+        match self.node_kind {
+            NodeKind::Inline => self.visitor.exit_inline_impl(),
+            NodeKind::Unique => self.visitor.exit_unique_impl(),
+            NodeKind::Shared => self.visitor.exit_shared_impl(),
+            NodeKind::Root => self.visitor.exit_root_impl(),
+        }
+    }
+
     #[allow(clippy::mem_forget)]
-    pub fn exit(self) {
-        self.visitor.exit_impl();
+    pub fn exit(mut self) {
+        self.exit_impl();
         // Prevent `drop`.
         mem::forget(self);
     }

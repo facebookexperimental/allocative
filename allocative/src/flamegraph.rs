@@ -18,6 +18,7 @@ use std::rc::Rc;
 
 use crate::key::Key;
 use crate::measure::MeasureVisitorImpl;
+use crate::measure::NodeKind;
 use crate::measure::Visitor;
 use crate::Allocative;
 
@@ -178,7 +179,10 @@ impl FlameGraphBuilder {
     pub fn root_visitor(&mut self) -> Visitor {
         assert!(!self.entered_root_visitor);
         self.entered_root_visitor = true;
-        Visitor { visitor: self }
+        Visitor {
+            visitor: self,
+            node_kind: NodeKind::Root,
+        }
     }
 
     /// Collect tree sizes starting from given root.
@@ -225,6 +229,20 @@ impl FlameGraphBuilder {
         let size = tree.borrow().size;
         tree.borrow_mut().rem_size = (size as isize).saturating_sub(children_size as isize);
     }
+
+    fn exit_impl(&mut self) {
+        assert!(self.entered_root_visitor);
+
+        let up = self.current.up();
+        if !up {
+            if let Some(mut shared) = self.shared.pop() {
+                assert!(shared.up());
+                self.current = shared;
+            } else {
+                self.entered_root_visitor = false;
+            }
+        }
+    }
 }
 
 impl MeasureVisitorImpl for FlameGraphBuilder {
@@ -259,18 +277,20 @@ impl MeasureVisitorImpl for FlameGraphBuilder {
         true
     }
 
-    fn exit_impl(&mut self) {
-        assert!(self.entered_root_visitor);
+    fn exit_inline_impl(&mut self) {
+        self.exit_impl();
+    }
 
-        let up = self.current.up();
-        if !up {
-            if let Some(mut shared) = self.shared.pop() {
-                assert!(shared.up());
-                self.current = shared;
-            } else {
-                self.entered_root_visitor = false;
-            }
-        }
+    fn exit_unique_impl(&mut self) {
+        self.exit_impl();
+    }
+
+    fn exit_shared_impl(&mut self) {
+        self.exit_impl();
+    }
+
+    fn exit_root_impl(&mut self) {
+        self.exit_impl();
     }
 }
 
