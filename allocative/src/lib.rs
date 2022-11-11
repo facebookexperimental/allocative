@@ -15,9 +15,11 @@ mod impls;
 mod key;
 mod measure;
 mod rc_str;
+mod size_of;
 mod test_derive;
 
 pub use allocative_derive::Allocative;
+pub use size_of::size_of_unique_allocated_data;
 
 pub use crate::flamegraph::FlameGraphBuilder;
 pub use crate::key::Key;
