@@ -228,7 +228,7 @@ impl FlameGraphBuilder {
 }
 
 impl MeasureVisitorImpl for FlameGraphBuilder {
-    fn enter_impl(&mut self, name: Key, size: usize) {
+    fn enter_inline_impl(&mut self, name: Key, size: usize) {
         self.current.down(name);
         self.current.tree.borrow_mut().size += size;
     }

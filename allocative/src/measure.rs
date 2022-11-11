@@ -19,7 +19,7 @@ use crate::key::Key;
 pub(crate) trait MeasureVisitorImpl {
     /// Enter simple field like `u32`.
     /// All sizes are in bytes.
-    fn enter_impl<'a>(&'a mut self, name: Key, size: usize);
+    fn enter_inline_impl<'a>(&'a mut self, name: Key, size: usize);
     /// Enter field which points to heap-allocated unique memory (e.g. `Box<T>`).
     fn enter_unique_impl(&mut self, name: Key, size: usize);
     /// Enter field which points to heap-allocated shared memory (e.g. `Arc<T>`).
@@ -48,7 +48,7 @@ impl<'a> Visitor<'a> {
     where
         'a: 'b,
     {
-        self.visitor.enter_impl(name, size);
+        self.visitor.enter_inline_impl(name, size);
         Visitor {
             visitor: self.visitor,
         }
