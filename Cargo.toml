@@ -1,12 +1,12 @@
 [workspace]
-resolver = "2"
 members = [
     "allocative",
     "allocative_derive",
 ]
+resolver = "2"
 
 [workspace.dependencies]
 ctor = "0.1.26"
 proc-macro2 = "1.0"
-syn = { version = "2", features = ["full", "extra-traits"] }
 quote = "1.0.3"
+syn = { version = "2", features = ["full", "extra-traits"] }
