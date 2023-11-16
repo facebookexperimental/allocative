@@ -54,10 +54,20 @@ fn impl_generics(
 ) -> syn::Result<proc_macro2::TokenStream> {
     if let Some(bound) = &attrs.bound {
         if !bound.is_empty() {
-            return Err(syn::Error::new(
-                attrs.bound.span(),
-                "non-empty bound is not implemented",
-            ));
+            use proc_macro2::{
+                Punct, Spacing, TokenStream as TokenStream2, TokenStream, TokenTree,
+            };
+            let mut verbatim_bound = TokenStream2::default();
+            verbatim_bound.extend(TokenStream2::from(TokenTree::from(Punct::new(
+                '<',
+                Spacing::Alone,
+            ))));
+            verbatim_bound.extend(bound.parse::<TokenStream>()?);
+            verbatim_bound.extend(TokenStream2::from(TokenTree::from(Punct::new(
+                '>',
+                Spacing::Alone,
+            ))));
+            return Ok(verbatim_bound);
         }
     }
 
