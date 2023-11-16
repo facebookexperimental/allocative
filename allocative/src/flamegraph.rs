@@ -23,6 +23,12 @@ use crate::visitor::VisitorImpl;
 use crate::Allocative;
 
 /// Node in flamegraph tree.
+///
+/// Get a textual representation suitable for [flamegraph.pl] or [inferno] using
+/// [`write`](Self::write) or [`Display`].
+///
+/// [flamegraph.pl]: https://github.com/brendangregg/FlameGraph
+/// [inferno]: https://github.com/jonhoo/inferno
 #[derive(Debug, Default, Clone)]
 pub struct FlameGraph {
     children: HashMap<Key, FlameGraph>,
@@ -64,7 +70,7 @@ impl FlameGraph {
     }
 
     #[allow(clippy::from_iter_instead_of_collect)]
-    fn write_flame_graph_impl(&self, stack: &[&str], w: &mut String) {
+    fn write_flame_graph_impl(&self, stack: &[&str], w: &mut impl std::fmt::Write) -> std::fmt::Result {
         if self.node_size != 0 {
             if !stack.is_empty() {
                 writeln!(w, "{} {}", stack.join(";"), self.node_size).unwrap();
@@ -77,16 +83,23 @@ impl FlameGraph {
         children.sort_by_key(|(key, _)| *key);
         for (key, child) in children {
             stack.push(key);
-            child.write_flame_graph_impl(&stack, w);
+            child.write_flame_graph_impl(&stack, w)?;
             stack.pop().unwrap();
         }
+        Ok(())
     }
 
     /// Write flamegraph in format suitable for `flamegraph.pl` or `inferno`.
     pub fn write(&self) -> String {
         let mut r = String::new();
-        self.write_flame_graph_impl(&[], &mut r);
+        self.write_flame_graph_impl(&[], &mut r).unwrap();
         r
+    }
+}
+
+impl std::fmt::Display for FlameGraph {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.write_flame_graph_impl(&[], f)
     }
 }
 
