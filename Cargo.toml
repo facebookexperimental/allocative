@@ -5,6 +5,10 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/facebookexperimental/allocative"
+
 [workspace.dependencies]
 ctor = "0.1.26"
 proc-macro2 = "1.0"
