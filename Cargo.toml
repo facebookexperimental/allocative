@@ -10,7 +10,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/facebookexperimental/allocative"
 
 [workspace.dependencies]
-ctor = "0.1.26"
-proc-macro2 = "1.0"
-quote = "1.0.3"
+ctor = "0.2.6"
+proc-macro2 = "1.0.78"
+quote = "1.0.35"
 syn = { version = "2", features = ["full", "extra-traits"] }
