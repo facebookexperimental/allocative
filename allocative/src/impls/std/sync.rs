@@ -47,8 +47,10 @@ impl<T: Allocative + ?Sized> Allocative for Arc<T> {
         {
             let visitor = visitor.enter_shared(
                 PTR_NAME,
-                // TODO(nga): 8 or 16 depending on sized or unsized.
-                mem::size_of::<*const ()>(),
+                // Possibly fat pointer for size
+                mem::size_of::<*const T>(),
+                // Force thin pointer for identity, as fat pointers can have
+                // different VTable addresses attached to the same memory
                 Arc::as_ptr(self) as *const (),
             );
             if let Some(mut visitor) = visitor {
@@ -88,8 +90,10 @@ impl<T: Allocative> Allocative for Rc<T> {
         {
             let visitor = visitor.enter_shared(
                 PTR_NAME,
-                // TODO(nga): 8 or 16 depending on sized or unsized.
-                mem::size_of::<*const ()>(),
+                // Possibly fat pointer for size
+                mem::size_of::<*const T>(),
+                // Force thin pointer for identity, as fat pointers can have
+                // different VTable addresses attached to the same memory
                 Rc::as_ptr(self) as *const (),
             );
             if let Some(mut visitor) = visitor {
