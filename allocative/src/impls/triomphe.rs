@@ -41,6 +41,13 @@ impl<H: Allocative> Allocative for HeaderWithLength<H> {
     }
 }
 
+#[repr(C)]
+struct ThinArcInnerRepr<H> {
+    _counter: AtomicUsize,
+    _header: H,
+    _len: usize,
+}
+
 impl<H: Allocative, T: Allocative> Allocative for ThinArc<H, T> {
     fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
         let mut visitor = visitor.enter_self_sized::<Self>();
@@ -50,12 +57,6 @@ impl<H: Allocative, T: Allocative> Allocative for ThinArc<H, T> {
                 mem::size_of::<*mut u8>(),
                 ThinArc::ptr(self) as *const (),
             ) {
-                #[repr(C)]
-                struct ThinArcInnerRepr<H> {
-                    _counter: AtomicUsize,
-                    _header: H,
-                    _len: usize,
-                }
                 let size = Layout::new::<ThinArcInnerRepr<H>>()
                     .extend(Layout::array::<T>(self.slice.len()).unwrap())
                     .unwrap()
@@ -76,6 +77,10 @@ impl<H: Allocative, T: Allocative> Allocative for ThinArc<H, T> {
     }
 }
 
+struct ArcInnerRepr {
+    _counter: AtomicUsize,
+}
+
 impl<T: Allocative + ?Sized> Allocative for Arc<T> {
     fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
         let mut visitor = visitor.enter_self_sized::<Self>();
@@ -85,9 +90,6 @@ impl<T: Allocative + ?Sized> Allocative for Arc<T> {
                 mem::size_of::<*mut T>(),
                 Arc::heap_ptr(self) as *const (),
             ) {
-                struct ArcInnerRepr {
-                    _counter: AtomicUsize,
-                }
                 let size = Layout::new::<ArcInnerRepr>()
                     .extend(
                         Layout::from_size_align(
