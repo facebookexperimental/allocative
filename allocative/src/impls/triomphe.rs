@@ -61,6 +61,7 @@ impl<H: Allocative, T: Allocative> Allocative for ThinArc<H, T> {
                     .extend(Layout::array::<T>(self.slice.len()).unwrap())
                     .unwrap()
                     .0
+                    .pad_to_align()
                     .size();
                 {
                     let mut visitor =
@@ -91,15 +92,10 @@ impl<T: Allocative + ?Sized> Allocative for Arc<T> {
                 Arc::heap_ptr(self) as *const (),
             ) {
                 let size = Layout::new::<ArcInnerRepr>()
-                    .extend(
-                        Layout::from_size_align(
-                            mem::size_of_val::<T>(self),
-                            mem::align_of_val::<T>(self),
-                        )
-                        .unwrap(),
-                    )
+                    .extend(Layout::for_value::<T>(self))
                     .unwrap()
                     .0
+                    .pad_to_align()
                     .size();
                 {
                     let mut visitor = visitor.enter(Key::for_type_name::<ArcInnerRepr>(), size);
@@ -130,5 +126,11 @@ mod tests {
         let arc = Arc::new("a".repeat(100));
         let vec = vec![arc.clone(), arc.clone(), arc];
         golden_test!(&vec);
+    }
+
+    #[test]
+    fn test_align() {
+        let arc = Arc::new(0u8);
+        golden_test!(&arc);
     }
 }
