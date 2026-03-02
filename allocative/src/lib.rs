@@ -79,8 +79,7 @@ pub mod __macro_refs {
     pub use ctor;
 }
 
-/// Create a `const` [`Key`] from a string literal, guaranteed to be evaluated
-/// at compile time.
+/// Create a `const` [`Key`], guaranteed to be evaluated at compile time.
 ///
 /// ```
 /// use allocative::Allocative;
@@ -103,20 +102,18 @@ pub mod __macro_refs {
 /// ```
 #[macro_export]
 macro_rules! key {
-    ($s:literal) => {{
-        const KEY: $crate::Key = $crate::Key::new($s);
-        KEY
-    }};
+    ($s:expr) => {
+        const { $crate::Key::new($s) }
+    };
 }
 
 /// Create a `const` [`Key`] from an identifier. This is a convenience wrapper
 /// around [`key!`] that stringifies the identifier.
 #[macro_export]
 macro_rules! ident_key {
-    ($name:ident) => {{
-        const KEY: $crate::Key = $crate::Key::new(stringify!($name));
-        KEY
-    }};
+    ($name:ident) => {
+        $crate::key!(stringify!($name))
+    };
 }
 
 #[test]
