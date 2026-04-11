@@ -17,6 +17,7 @@ use hashbrown::HashTable;
 use crate::Allocative;
 use crate::Key;
 use crate::Visitor;
+use crate::key;
 
 const CAPACITY_NAME: Key = Key::new("capacity");
 
