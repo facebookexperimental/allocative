@@ -16,7 +16,7 @@ use relative_path::RelativePathBuf;
 
 use crate::allocative_trait::Allocative;
 use crate::impls::common::PTR_NAME;
-use crate::key::Key;
+use crate::key;
 use crate::visitor::Visitor;
 
 impl Allocative for RelativePathBuf {
@@ -24,7 +24,7 @@ impl Allocative for RelativePathBuf {
         let mut visitor = visitor.enter_self_sized::<Self>();
         {
             let mut visitor = visitor.enter_unique(PTR_NAME, mem::size_of::<*const u8>());
-            visitor.visit_simple(Key::new("chars"), self.as_str().len());
+            visitor.visit_simple(key!("chars"), self.as_str().len());
             // TODO(nga): spare capacity.
             visitor.exit();
         }
